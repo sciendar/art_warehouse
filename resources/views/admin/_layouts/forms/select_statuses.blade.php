@@ -1,5 +1,5 @@
 <label class="form-label" for="status">
-    Статус
+    Статус @dump($item->status)
 </label>
 <select class="single-select" name="status" id="status" data-select2-id="status" tabindex="-1" aria-hidden="true" required>
     @foreach(\App\Enums\PaintingStatus::titles_list() as $status_id => $status_title)
