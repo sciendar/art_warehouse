@@ -42,7 +42,7 @@
                                 <i class="bi bi-ui-checks-grid"></i>
                             </div>
                         </div>
-                    </a>
+                    </a>@dd(123)
                     <a href="{{ route('admin.paintings.index', array_merge(request()->query(), ['type' => 'table'])) }}" class="btn {{ (isset($_GET['type']) && $_GET['type'] == 'table') ? 'btn-primary' : 'btn-outline-primary' }} mx-1">
                         <div class="d-flex align-items-center">
                             <div class="tab-icon">
