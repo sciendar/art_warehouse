@@ -177,6 +177,7 @@ class PaintingAdminController extends AdminController
                 $item->tracking_at = now();
             }
             $item->edit($request->only($item->getFillable()));
+            dd($item, $request->only($item->getFillable()));
             if ($is_new) {
                 $item->code         = $this->code($item, $warehouse);
                 $item->warehouse_id = (int)$warehouse->id;
