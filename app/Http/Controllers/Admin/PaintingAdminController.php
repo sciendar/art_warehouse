@@ -143,12 +143,10 @@ class PaintingAdminController extends AdminController
         }
 
         $user = auth()->user();
-
+dd($request);
         $is_new                = !$item->id;
         $old_warehouse_user_id = $item->warehouse_id . '_' . $item->user_id;
         $warehouse_id          = Str::contains($request->warehouse_user_id, '_') ? Str::before($request->warehouse_user_id, '_') : $user->warehouse_id;
-        $user_id               = Str::contains($request->warehouse_user_id, '_') ? Str::after($request->warehouse_user_id, '_') : $user->id;
-        $user                  = User::find($user_id > 0 ? $user_id : ($item->user_id ?? auth()->id()));
         $old_painting_at       = $user->last_painting_at ?? now()->subDays();
 
         try {
@@ -159,7 +157,7 @@ class PaintingAdminController extends AdminController
             if ($is_new) {
                 $item->code         = $this->code($item, $warehouse_id);
                 $item->warehouse_id = (int)$warehouse_id;
-                $item->user_id      = (int)$user_id;
+                $item->user_id      = (int)$user->id;
             }
             if ($request->has('note') && trim($item->note) != trim($request->note)) {
                 $item->note = $request->note . "\r\n" . $item->note;
