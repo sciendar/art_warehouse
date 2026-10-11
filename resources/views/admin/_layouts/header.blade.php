@@ -32,7 +32,7 @@
 {{--        </form>--}}
         <div class="top-navbar-right ms-3">
             <ul class="navbar-nav align-items-center">
-                @if(Route::is('*.paintings.*'))
+                @if(Route::is('*.paintings.*') && !auth()->user()->is_admin())
                     <li class="nav-item dropdown dropdown-large">
                         <form action="{{ route('admin.change_warehouse') }}" method="POST">
                             @csrf

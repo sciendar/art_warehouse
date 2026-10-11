@@ -53,14 +53,14 @@
                     <div class="col mb-3">
                         @include('admin._layouts.forms.select_statuses')
                     </div>
-{{--                    @if(auth()->user()->is_admin())--}}
-{{--                        <div class="col mb-3">--}}
-{{--                            @include('admin._layouts.forms.select_warehouses_users')--}}
-{{--                        </div>--}}
+                    @if(auth()->user()->is_admin())
+                        <div class="col mb-3">
+                            @include('admin._layouts.forms.select_warehouses_users', ['required'=>true])
+                        </div>
 {{--                    @else--}}
 {{--                        @php($user = auth()->user())--}}
 {{--                        <input type="hidden" name="warehouse_user_id" value="{{ $user->warehouse_id }}_{{ $user->id }}">--}}
-{{--                    @endif--}}
+                    @endif
                 </div>
 
                 <div class="row">
