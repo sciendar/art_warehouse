@@ -153,6 +153,7 @@ class PaintingAdminController extends AdminController
     public function post_credit($request, $item)
     {
         $is_new = !$item->id;
+        $old_status = $item->status;
 
         if ((count(array_filter($request->images ?? [])) + count(array_filter($request->old_images ?? []))) == 0) {
             return back()->with('error', 'Наличие изображения обязательно');
@@ -177,6 +178,9 @@ class PaintingAdminController extends AdminController
                 $item->tracking_at = now();
             }
             $item->edit($request->only($item->getFillable()));
+            if ($item->status == PaintingStatus::SENT && $item->status != $old_status) {
+                $item->tracking_at = now();
+            }
             if ($is_new) {
                 $item->code         = $this->code($item, $warehouse);
                 $item->warehouse_id = (int)$warehouse->id;
