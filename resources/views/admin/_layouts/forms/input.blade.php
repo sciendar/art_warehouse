@@ -6,7 +6,7 @@
 @endphp
 
 @isset($label)
-    <label class="form-label mb-1" for="{{ $data }}">
+    <label class="form-label" for="{{ $data }}">
         @isset($flag)
             <i class="flag-icon flag-icon-{{ $LANG }}"></i>
         @endisset

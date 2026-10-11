@@ -10,6 +10,7 @@ use App\Mail\NewPainting;
 use App\Models\Image;
 use App\Models\Painting;
 use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -68,16 +69,29 @@ class PaintingAdminController extends AdminController
             ->paginate(100)
             ->withQueryString();
 
+        $counts = $items_query->clone()
+            ->reorder()                  // сбрасывает все orderBy
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $all_counts = $this->new_query()
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
         $max_created_at  = $items_query->clone()
             ->orderByDesc('created_at')
             ->value('created_at')
             ?->format('d.m.Y H:i');
-        $max_tracking_at = $items_query->clone()
+        $max_tracking_at = $this->new_query()
             ->orderByDesc('tracking_at')
             ->value('tracking_at')
             ?->format('d.m.Y H:i');
 
-        return view($this->folder(suffix: 'index'), compact('columns', 'items', 'max_created_at', 'max_tracking_at'));
+        return view($this->folder(suffix: 'index'), compact('columns', 'items', 'counts', 'all_counts', 'max_created_at', 'max_tracking_at'));
     }
 
     /**
@@ -138,28 +152,39 @@ class PaintingAdminController extends AdminController
 
     public function post_credit($request, $item)
     {
+        $is_new = !$item->id;
+        $old_status = $item->status;
+
         if ((count(array_filter($request->images ?? [])) + count(array_filter($request->old_images ?? []))) == 0) {
             return back()->with('error', 'Наличие изображения обязательно');
         }
 
-        $user = auth()->user();
-
-        $is_new                = !$item->id;
-        $old_warehouse_user_id = $item->warehouse_id . '_' . $item->user_id;
-        $warehouse_id          = Str::contains($request->warehouse_user_id, '_') ? Str::before($request->warehouse_user_id, '_') : $user->warehouse_id;
-        $user_id               = Str::contains($request->warehouse_user_id, '_') ? Str::after($request->warehouse_user_id, '_') : $user->id;
-        $user                  = User::find($user_id > 0 ? $user_id : ($item->user_id ?? auth()->id()));
-        $old_painting_at       = $user->last_painting_at ?? now()->subDays();
+        if (auth()->user()->is_admin()) {
+            if (!$request->has('warehouse_user_id') || !Str::contains($request->warehouse_user_id, '_')) {
+                return back()->with('error', 'Необходимо выбрать склад');
+            }
+            $user      = User::find(Str::after($request->warehouse_user_id, '_'));
+            $warehouse = Warehouse::find(Str::before($request->warehouse_user_id, '_'));
+        } else {
+            $user      = auth()->user();
+            $warehouse = $user->warehouse;
+        }
+        if (!$user || !$warehouse) {
+            return back()->with('error', 'Что-то не так с выбором склада. Обратитесь к админу');
+        }
 
         try {
             if ($item->track_number != $request->track_number && $item->status != $request->status && $request->status == PaintingStatus::SENT) {
                 $item->tracking_at = now();
             }
             $item->edit($request->only($item->getFillable()));
+            if ($item->status == PaintingStatus::SENT && $item->status != $old_status) {
+                $item->tracking_at = now();
+            }
             if ($is_new) {
-                $item->code         = $this->code($item, $warehouse_id);
-                $item->warehouse_id = (int)$warehouse_id;
-                $item->user_id      = (int)$user_id;
+                $item->code         = $this->code($item, $warehouse);
+                $item->warehouse_id = (int)$warehouse->id;
+                $item->user_id      = (int)$user->id;
             }
             if ($request->has('note') && trim($item->note) != trim($request->note)) {
                 $item->note = $request->note . "\r\n" . $item->note;
@@ -169,13 +194,13 @@ class PaintingAdminController extends AdminController
 
             $this->credit_images($item, $request);
             $this->rotate_images($request);
-            $this->redirection($item, $old_warehouse_user_id);
+//            $this->redirection($item, $old_warehouse_user_id);
 
-            if ($is_new === true && ($old_painting_at?->format('d.m.Y') != now()->format('d.m.Y'))) {
-                Mail::to(['demy2@ukr.net',
-                          'vitalipskaya@gmail.com'])->send(new NewPainting($item, $user));
-//                (new MyMail())->to('demy2@ukr.net')->send(new NewPainting($item));
-            }
+//            if ($is_new === true && ($old_painting_at?->format('d.m.Y') != now()->format('d.m.Y'))) {
+//                Mail::to(['demy2@ukr.net',
+//                          'vitalipskaya@gmail.com'])->send(new NewPainting($item, $user));
+////                (new MyMail())->to('demy2@ukr.net')->send(new NewPainting($item));
+//            }
 
             return $this->redirect_to_edit($item);
         } catch (\Exception $e) {
@@ -245,7 +270,7 @@ class PaintingAdminController extends AdminController
                         $new_item->warehouse_id = $new_warehouse->id;
                         $new_item->created_at   = now();
                         $new_item->updated_at   = now();
-                        $new_item->code         = $this->code($new_item, $new_warehouse->id);
+                        $new_item->code         = $this->code($new_item, $new_warehouse);
                         if ($warehouse->id != $new_warehouse->id) {
                             $new_item->note = now()->format('d.m.Y H:i') . ': Перенаправлено со склада #' . $warehouse->id . ' | ' . $warehouse->code . ' | ' . $warehouse->title . '(' . $warehouse->city . ')' . "\r\n" . $new_item->note;
                             $item->note     = now()->format('d.m.Y H:i') . ': Перенаправлено на склад #' . $new_warehouse->id . ' | ' . $warehouse->code . ' | ' . $new_warehouse->title . '(' . $new_warehouse->city . ')' . "\r\n" . $item->note;
@@ -270,15 +295,11 @@ class PaintingAdminController extends AdminController
         }
     }
 
-    public function code($item = null, $warehouse_id = null)
+    public function code($item = null, $warehouse = null)
     {
         if ($item != null && isset($item->code)) {
             return $item->code;
         }
-
-        $warehouse = DB::table('warehouses')
-            ->where('id', $warehouse_id ?? auth()->user()->warehouse_id)
-            ->first();
 
         $count = DB::table('paintings')
             ->where('warehouse_id', $warehouse?->id)

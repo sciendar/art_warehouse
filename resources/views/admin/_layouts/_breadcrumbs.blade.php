@@ -33,7 +33,7 @@
         </div>
     @endif
 
-    @if(auth()->user()->is_admin() && Route::is('*.edit'))
+    @if(auth()->user()->is_admin() && Route::is('*.paintings.edit'))
         <div class="ms-auto">
             <a href="#" class="text-danger mx-3" data-tooltip="tooltip" title="Remove" data-bs-toggle="modal" data-bs-target="#delete">
                 <i class="bi bi-trash3"></i>
