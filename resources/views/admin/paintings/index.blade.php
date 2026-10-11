@@ -34,6 +34,14 @@
                         </span>
                         {{ $max_tracking_at ?? '--' }}
                     </span>
+                    @foreach(\App\Enums\PaintingStatus::titles_list() as $status_id => $status_title)
+                        <span class="text-primary mx-2" data-bs-toggle="tooltip" title="{{ $status_title }}">
+{{--                            <span class="mx-1">--}}
+{{--                                <i class="bi bi-box2"></i>--}}
+{{--                            </span>--}}
+                            ({{ $counts[$status_id] ?? 0 }} / {{ $all_counts[$status_id] ?? 0 }})
+                        </span>
+                    @endforeach
                 </div>
                 <div class="col-auto text-end">
                     <a href="{{ route('admin.paintings.index', array_merge(request()->query(), ['type' => 'card'])) }}" class="btn {{ (!isset($_GET['type']) || $_GET['type'] == 'card') ? 'btn-primary' : 'btn-outline-primary' }} mx-1">
