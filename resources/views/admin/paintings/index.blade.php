@@ -39,7 +39,7 @@
 {{--                            <span class="mx-1">--}}
 {{--                                <i class="bi bi-box2"></i>--}}
 {{--                            </span>--}}
-                            ({{ $counts[$status_id] ?? 0 }} / {{ $all_counts[$status_id] ?? 0 }})
+                            {{ $status_title }} - {{ $counts[$status_id] ?? 0 }} / {{ $all_counts[$status_id] ?? 0 }}
                         </span>
                     @endforeach
                 </div>
