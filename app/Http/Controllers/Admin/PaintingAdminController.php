@@ -132,7 +132,7 @@ class PaintingAdminController extends AdminController
 
     public function credit($item = null)
     {
-        $code = $this->code($item);
+        $code = $this->code($item);dd(123);
         return view($this->folder(suffix: 'credit'), compact('item', 'code'));
     }
 
