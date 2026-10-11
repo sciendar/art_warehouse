@@ -86,7 +86,7 @@ class PaintingAdminController extends AdminController
             ->orderByDesc('created_at')
             ->value('created_at')
             ?->format('d.m.Y H:i');
-        $max_tracking_at = $items_query->clone()
+        $max_tracking_at = $this->new_query()
             ->orderByDesc('tracking_at')
             ->value('tracking_at')
             ?->format('d.m.Y H:i');
