@@ -20,38 +20,64 @@ class IsAdminMiddleware
 
     public function handle(Request $request, Closure $next): mixed
     {
-        $response = $next($request);
-
-        if (! Str::contains($request->fullUrl(), 'action_statistics')) {
-            $this->logActivity($request, $response);
+        // 1. Проверка авторизации
+        if (!Auth::check()) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'Необходима авторизация.');
         }
 
+        $user = Auth::user();
 
-        if (!auth()->check()) {
-            return redirect()->route('login')->with('error', 'А ты кто? Обратись к админу!');
+        // 2. Проверка роли
+        if (
+            !$user->is_admin() &&
+            !$user->is_storekeeper() &&
+            !$user->is_manager()
+        ) {
+            Auth::logout();
+
+            return redirect()
+                ->route('login')
+                ->with('error', 'Недостаточно прав.');
         }
 
-        $user = auth()->user();
-
-        if (!$user->is_admin() && !$user->is_storekeeper() && !$user->is_manager()) {
-            auth()->logout();
-
-            return redirect()->route('login')->with('error', 'А ты кто? Обратись к админу!');
-        }
-
+        // 3. Проверка IP
         $ip = $this->ipAddressService->remember($request->ip());
 
-        if (in_array($ip, $this->ipAddressService->exceptionIps(), true)) {
-            auth()->logout();
+        if (in_array(
+            $ip,
+            $this->ipAddressService->exceptionIps(),
+            true
+        )) {
+            Auth::logout();
 
-            return redirect()->route('login')->with('error', 'Ты странный. Обратись к админу!');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Доступ запрещён.');
         }
 
-        if ($user->auth_at === null || $user->auth_at->isPast()) {
+        // 4. Проверка срока авторизации
+        if (
+            $user->auth_at === null ||
+            $user->auth_at->isPast()
+        ) {
             return redirect()->route('admin.auth');
         }
 
+        // 5. Выполнение контроллера
+        $response = $next($request);
+
+        // 6. Обновление активности
         $user->touch('last_auth_at');
+
+        // 7. Журналирование
+        if (!Str::contains(
+            $request->fullUrl(),
+            'action_statistics'
+        )) {
+            $this->logActivity($request, $response);
+        }
 
         return $response;
     }

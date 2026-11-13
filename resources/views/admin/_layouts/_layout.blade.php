@@ -4,7 +4,7 @@
         @include('admin._layouts.metas')
         @include('admin._layouts.styles')
         <title>
-            @yield('title', 'Avenor')
+            @yield('title', 'Skladart')
         </title>
     </head>
 
